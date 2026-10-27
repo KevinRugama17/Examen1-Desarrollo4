@@ -25,5 +25,64 @@ const $btnGuardar = document.querySelector("#btn-guardar");
  *     - Siempre (finally): rehabilite el botón y restaure su texto.
  */
 export const iniciarFormulario = ({ alGuardar }) => {
-  // TODO
+  listarCategorias()
+    .then((respuesta) => {
+      (respuesta.data || []).forEach((cat) => {
+        const $opcion = document.createElement("option");
+        $opcion.value = cat.id;
+        $opcion.textContent = cat.nombre;
+        $selectCategoria.appendChild($opcion);
+      });
+    })
+    .catch(() => {
+      mostrarMensaje("error", "Error al cargar las categorías.");
+    });
+
+  $form.addEventListener("submit", async (evento) => {
+    evento.preventDefault();
+
+    $form.querySelectorAll("[data-error]").forEach(($p) => ($p.textContent = ""));
+    $form.querySelectorAll("[aria-invalid]").forEach(($input) => $input.removeAttribute("aria-invalid"));
+
+    const formData = new FormData($form);
+    const datos = {
+      codigo: formData.get("codigo")?.trim(),
+      nombre: formData.get("nombre")?.trim(),
+      categoria_id: Number(formData.get("categoria_id")),
+      fecha_adquisicion: formData.get("fecha_adquisicion"),
+      costo_interno: Number(formData.get("costo_interno")),
+    };
+
+    const textoOriginal = $btnGuardar.textContent;
+    $btnGuardar.disabled = true;
+    $btnGuardar.textContent = "Guardando…";
+
+    try {
+      await crearEquipo(datos);
+      $form.reset();
+      mostrarMensaje("exito", `Equipo ${datos.codigo} registrado.`);
+      if (alGuardar) {
+        alGuardar();
+      }
+    } catch (error) {
+      if (error.status === 422 && error.datos?.errors) {
+        for (const [campo, mensajes] of Object.entries(error.datos.errors)) {
+          const $pError = $form.querySelector(`[data-error="${campo}"]`);
+          const $input = $form.querySelector(`[name="${campo}"]`);
+
+          if ($pError && mensajes.length > 0) {
+            $pError.textContent = mensajes[0];
+          }
+          if ($input) {
+            $input.setAttribute("aria-invalid", "true");
+          }
+        }
+      } else {
+        mostrarMensaje("error", error.message || "Error al registrar el equipo.");
+      }
+    } finally {
+      $btnGuardar.disabled = false;
+      $btnGuardar.textContent = textoOriginal;
+    }
+  });
 };
