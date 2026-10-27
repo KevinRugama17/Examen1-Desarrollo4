@@ -35,7 +35,53 @@ export const formatearFecha = (iso) =>
  *  - Si falla, muestre el error con mostrarMensaje("error", ...).
  */
 export const cargarPagina = async (pagina = 1) => {
-  // TODO
+  $lista.setAttribute("aria-busy", "true");
+
+  try {
+    const respuesta = await listarEquipos(pagina, POR_PAGINA);
+    paginaActual = respuesta.meta.current_page;
+    ultimaPagina = respuesta.meta.last_page;
+
+    $lista.textContent = "";
+
+    if (!respuesta.data || respuesta.data.length === 0) {
+      const $vacio = document.createElement("li");
+      $vacio.className = "vacio";
+      $vacio.textContent = "No hay equipos registrados.";
+      $lista.appendChild($vacio);
+    } else {
+      respuesta.data.forEach((equipo) => {
+        const clon = $plantilla.content.cloneNode(true);
+        const $tarjeta = clon.querySelector("li");
+
+        $tarjeta.dataset.id = equipo.id;
+
+        clon.querySelector(".codigo").textContent = equipo.codigo;
+
+        const $estado = clon.querySelector(".estado");
+        $estado.textContent = equipo.estado;
+        $estado.dataset.estado = equipo.estado;
+
+        clon.querySelector(".nombre").textContent = equipo.nombre;
+        clon.querySelector(".categoria").textContent = equipo.categoria?.nombre ?? "";
+        clon.querySelector(".fecha").textContent = formatearFecha(equipo.fecha_adquisicion);
+
+        $lista.appendChild(clon);
+      });
+    }
+
+    $resumen.textContent = respuesta.meta.total > 0
+      ? `Mostrando ${respuesta.meta.from}–${respuesta.meta.to} de ${respuesta.meta.total}`
+      : "";
+    $paginaActual.textContent = `Página ${paginaActual} de ${ultimaPagina || 1}`;
+
+    $btnAnterior.disabled = paginaActual <= 1;
+    $btnSiguiente.disabled = paginaActual >= ultimaPagina;
+  } catch (error) {
+    mostrarMensaje("error", error.message || "Error al cargar los equipos.");
+  } finally {
+    $lista.removeAttribute("aria-busy");
+  }
 };
 
 /**
@@ -50,14 +96,45 @@ export const cargarPagina = async (pagina = 1) => {
  *  - Otro error: muestre un mensaje general.
  */
 const alHacerClicEnLista = async (evento) => {
-  // TODO
+  const $btnEliminar = evento.target.closest(".btn-eliminar");
+  if (!$btnEliminar) return;
+
+  const $tarjeta = $btnEliminar.closest("li[data-id]");
+  if (!$tarjeta) return;
+
+  const id = $tarjeta.dataset.id;
+  if (!confirm("¿Desea eliminar este equipo?")) return;
+
+  try {
+    await eliminarEquipo(id);
+    mostrarMensaje("exito", "Equipo eliminado.");
+
+    const itemsRestantes = $lista.querySelectorAll("li[data-id]").length;
+    if (itemsRestantes === 1 && paginaActual > 1) {
+      await cargarPagina(paginaActual - 1);
+    } else {
+      await cargarPagina(paginaActual);
+    }
+  } catch (error) {
+    if (error.status === 409) {
+      mostrarMensaje("error", error.datos?.mensaje ?? "No se puede eliminar un equipo prestado.");
+    } else {
+      mostrarMensaje("error", error.message || "Error al eliminar el equipo.");
+    }
+  }
 };
 
 // Parcialmente implementado: complete el TODO de los botones de paginación.
 export const iniciarListado = () => {
   $lista.addEventListener("click", alHacerClicEnLista);
 
-  // TODO [F2] Conecte #btn-anterior y #btn-siguiente con cargarPagina()
+  $btnAnterior.addEventListener("click", () => {
+    if (paginaActual > 1) cargarPagina(paginaActual - 1);
+  });
+
+  $btnSiguiente.addEventListener("click", () => {
+    if (paginaActual < ultimaPagina) cargarPagina(paginaActual + 1);
+  });
 
   cargarPagina(1);
 };
