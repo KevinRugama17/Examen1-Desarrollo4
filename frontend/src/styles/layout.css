@@ -21,22 +21,60 @@
    ========================================================================= */
 
 .layout {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  box-sizing: border-box;
 }
 
 .panel-form {
+  box-sizing: border-box;
 }
 
 .panel-listado {
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .barra-listado {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 .lista-equipos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
 }
 
 .paginacion {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
 }
 
 @media (min-width: 900px) {
+  .layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    align-items: start;
+    gap: 1.5rem;
+  }
+
+  .panel-form {
+    position: sticky;
+    top: 1rem;
+  }
 }
