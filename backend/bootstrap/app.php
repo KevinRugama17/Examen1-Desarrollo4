@@ -21,15 +21,15 @@ return Application::configure(basePath: dirname(__DIR__))
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
 
-        // ---------------------------------------------------------------
-        // TODO [B5] Manejo centralizado de errores
-        //
-        // Traduzca App\Exceptions\ReglaNegocioException a una respuesta
-        // JSON con código 409 y el cuerpo:
-        //
-        //     { "mensaje": "<mensaje de la excepción>", "codigo": "REGLA_NEGOCIO" }
-        //
-        // Además, evite que estas excepciones se registren en la bitácora:
-        // no son errores del sistema, son reglas del dominio.
-        // ---------------------------------------------------------------
+        // B5: Manejo centralizado de errores
+
+        $exceptions->dontReport(\App\Exceptions\ReglaNegocioException::class);
+
+        $exceptions->render(function (\App\Exceptions\ReglaNegocioException $e) {
+            return response()->json([
+                'mensaje' => $e->getMessage(),
+                'codigo'  => 'REGLA_NEGOCIO',
+            ], 409);
+        });
+
     })->create();
